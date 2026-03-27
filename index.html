@@ -1,0 +1,128 @@
+<!-- 
+ Lab 01: AR Feature Marker Generator
+ Name: 
+ SITI NURUL AMIRAH BINTI SHEIKH SULAIMAN (A23CS0182)
+ RADEN SALMA HUMAIRA BINTI MUHAMMAD MU'NIM (A23CS0264)
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Feature Marker Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo-tag"> LAB 01</div>
+    </div>
+    <h1>AR Feature <span>Marker</span> Generator</h1>
+    <div class="status-pill" id="statusPill">IDLE</div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn primary" id="uploadBtn">⬆ Upload Image</button>
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <button class="btn" id="generateBtn" disabled> Generate</button>
+    <button class="btn danger" id="saveBtn" disabled> Save</button>
+    <div class="sep"></div>
+    <div class="method-row">
+      <label>METHOD</label>
+      <select id="methodSelect">
+        <option value="harris">Harris Corners</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="method-row" style="margin-left:auto">
+      <label>THRESHOLD</label>
+      <select id="threshSelect">
+        <option value="0.01">Low</option>
+        <option value="0.05" selected>Medium</option>
+        <option value="0.15">High </option>
+      </select>
+    </div>
+    <div class="method-row">
+      <button class="btn primary"
+  <a href="index.html" id="backBtn">AR Tracker</a>
+    </button>
+  </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Processing...</div>
+  </div>
+
+  <!-- Canvas Grid -->
+  <div class="canvas-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="label">[ IMAGE ]</span>
+        <span class="badge" id="badge0">— awaiting upload</span>
+      </div>
+      <div class="canvas-wrap" id="wrap0">
+        <div class="canvas-placeholder" id="ph0">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Upload an image to begin</span>
+        </div>
+        <canvas id="canvas0" style="display:none"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="label">[ GRAYSCALE ]</span>
+        <span class="badge" id="badge1">— pending</span>
+      </div>
+      <div class="canvas-wrap" id="wrap1">
+        <div class="canvas-placeholder" id="ph1">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>Grayscale output</span>
+        </div>
+        <canvas id="canvas1" style="display:none"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="label">[ FEATURES ]</span>
+        <span class="badge" id="badge2">— pending</span>
+      </div>
+      <div class="canvas-wrap" id="wrap2">
+        <div class="canvas-placeholder" id="ph2">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span>Detected keypoints</span>
+        </div>
+        <canvas id="canvas2" style="display:none"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat"><span class="k">Keypoints</span><span class="v" id="statKP">0</span></div>
+    <div class="stat"><span class="k">Image Size</span><span class="v" id="statSize">—</span></div>
+    <div class="stat"><span class="k">Method</span><span class="v" id="statMethod">—</span></div>
+    <div class="stat"><span class="k">Time (ms)</span><span class="v" id="statTime">—</span></div>
+  </div>
+
+  <!-- Log -->
+  <div class="log">
+    <div class="log-head">CONSOLE OUTPUT</div>
+    <div class="log-body" id="logBody">
+      <div class="log-line">System ready. Upload an image to begin.</div>
+    </div>
+  </div>
+
+</div>
+<script src="script.js"></script>
+
+</body>
+</html>
