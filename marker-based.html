@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>AR - Colored Marker NFT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+
+    <style>
+      body { margin: 0; overflow: hidden; }
+
+      /* debugging styling */
+      #status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 14px;
+        z-index: 9999;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="status">🔍 Searching for marker...</div>
+
+    <a-scene
+      vr-mode-ui="enabled: false"
+      renderer="logarithmicDepthBuffer: true; precision: medium;"
+      embedded
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+    >
+
+      <!-- 
+        NFT without the .(Extensions) will automatically detect
+        If files are named marker.fset / marker.fset3 / marker.iset,
+        use url="marker" 
+      -->
+      <a-nft
+        type="nft"
+        url="marker"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5"
+        emitevents="true"
+        id="nftMarker"
+      >
+        <a-entity
+          position="0 0 0"
+          scale="0.05 0.05 0.05"
+          gltf-model="Pikachu.glb"
+        ></a-entity>
+      </a-nft>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const marker = document.getElementById('nftMarker');
+
+      // Update UI when marker is found / lost
+      marker.addEventListener('markerFound', () => {
+        statusEl.textContent = 'Marker detected';
+        statusEl.style.background = 'rgba(0, 128, 0, 0.7)';
+      });
+
+      marker.addEventListener('markerLost', () => {
+        statusEl.textContent = 'Searching for marker';
+        statusEl.style.background = 'rgba(0,0,0,0.6)';
+      });
+    </script>
+  </body>
+</html>
