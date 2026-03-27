@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Feature Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsfeat/0.0.8/jsfeat.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #0f1318;
+    --panel: #141920;
+    --border: #1e2a38;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --success: #00ff88;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(10,12,16,0.8);
+    backdrop-filter: blur(8px);
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    position: relative;
+  }
+  .logo-icon::before {
+    content: '';
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--accent);
+    transform: rotate(45deg);
+  }
+  .logo-icon::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  header h1 span { color: var(--accent); }
+
+  .tag {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr 260px;
+    gap: 0;
+    height: calc(100vh - 61px);
+  }
+
+  /* Left panel */
+  .left-panel {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-header::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  .controls {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+  .upload-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .upload-zone .icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .upload-zone p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .upload-zone strong {
+    display: block;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .divider {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .settings-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .settings-block label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .value-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .value-display span {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  select {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: transparent;
+    color: var(--accent);
+    box-shadow: 0 0 16px rgba(0,229,255,0.25);
+  }
+  .btn-primary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-secondary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-save {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  .btn-save:hover:not(:disabled) {
+    border-color: var(--success);
+    color: var(--success);
+    box-shadow: 0 0 12px rgba(0,255,136,0.15);
+  }
+  .btn-save:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Main canvas area */
+  .main-area {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .three-panels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    flex: 1;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .panel-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 220px;
+  }
+
+  .panel-box-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-box-label .dot-label {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .panel-canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    min-height: 0;
+    position: relative;
+    min-height: 180px;
+  }
+
+  canvas {
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .panel-empty {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-align: center;
+    opacity: 0.5;
+  }
+
+  #canvas-placeholder { display: none; }
+  #outputCanvas { display: none; }
+
+  .status-bar {
+    width: 100%;
+    padding: 10px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status-item { display: flex; align-items: center; gap: 6px; }
+  .status-item .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .status-item .dot.active { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
+  .status-item .dot.success { background: var(--success); box-shadow: 0 0 4px var(--success); }
+
+  /* Right panel - log */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .log-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.8;
+  }
+
+  .log-line {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(30,42,56,0.5);
+  }
+  .log-line .ts { color: var(--muted); min-width: 60px; }
+  .log-line .msg { color: var(--text); flex: 1; }
+  .log-line.ok .msg { color: var(--success); }
+  .log-line.warn .msg { color: var(--accent2); }
+  .log-line.info .msg { color: var(--accent); }
+
+  .stats-block {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--accent);
+    display: block;
+  }
+  .stat-card .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Scanning animation */
+  @keyframes scan {
+    0% { top: 0; opacity: 1; }
+    90% { opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+  }
+  .scan-line {
+    position: absolute;
+    left: 24px; right: 24px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    pointer-events: none;
+    display: none;
+  }
+  .scan-line.active { display: block; animation: scan 1.2s linear infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon"></div>
+  <h1>AR <span>Feature</span> Tracker</h1>
+  <div class="tag">// PHASE 01 — KEYPOINT EXTRACTOR v1.0</div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Controls -->
+  <div class="left-panel">
+    <div class="panel-header">Input &amp; Settings</div>
+    <div class="controls">
+
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="icon">📂</div>
+        <strong>Upload marker image</strong>
+        <p>Drag & drop or click<br>JPG / PNG recommended</p>
+      </div>
+
+      <div class="divider">── ALGORITHM SETTINGS ──</div>
+
+      <div class="settings-block">
+        <label>Detection method</label>
+        <select id="method">
+          <option value="fast">FAST corners (recommended)</option>
+          <option value="orb">ORB descriptors</option>
+          <option value="yape">YAPE06</option>
+        </select>
+      </div>
+
+      <div class="settings-block">
+        <label>Max keypoints</label>
+        <input type="range" id="maxKP" min="50" max="1000" step="50" value="300">
+        <div class="value-display">
+          <span style="color:var(--muted);font-size:10px">50</span>
+          <span id="maxKPVal">300</span>
+          <span style="color:var(--muted);font-size:10px">1000</span>
+        </div>
+      </div>
+
+      <div class="settings-block">
+        <label>FAST threshold</label>
+        <input type="range" id="fastThresh" min="5" max="80" step="1" value="20">
+        <div class="value-display">
+          <span style="color:var(--muted);font-size:10px">5</span>
+          <span id="fastThreshVal">20</span>
+          <span style="color:var(--muted);font-size:10px">80</span>
+        </div>
+      </div>
+
+      <div class="settings-block">
+        <label>Gaussian blur radius</label>
+        <input type="range" id="blurR" min="0" max="4" step="1" value="2">
+        <div class="value-display">
+          <span style="color:var(--muted);font-size:10px">off</span>
+          <span id="blurRVal">2</span>
+          <span style="color:var(--muted);font-size:10px">4</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-primary" id="btnGenerate" disabled>⚙ Generate features</button>
+        <button class="btn-secondary" id="btnReset" disabled>↺ Reset</button>
+        <button class="btn-save" id="btnSave" disabled>↓ Save marker PNG</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTRE: 3 Panels -->
+  <div class="main-area">
+    <div class="scan-line" id="scanLine"></div>
+    <div class="three-panels">
+      <div class="panel-box">
+        <div class="panel-box-label"><div class="dot-label"></div>01 — Original RGB</div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvasOriginal"></canvas>
+          <div class="panel-empty" id="emptyOriginal">Upload image to begin</div>
+        </div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-box-label"><div class="dot-label"></div>02 — Grayscale</div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvasGray"></canvas>
+          <div class="panel-empty" id="emptyGray">Generate to see grayscale</div>
+        </div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-box-label"><div class="dot-label"></div>03 — Feature Points</div>
+        <div class="panel-canvas-wrap">
+          <canvas id="canvasFeatures"></canvas>
+          <div class="panel-empty" id="emptyFeatures">Generate to see keypoints</div>
+        </div>
+      </div>
+    </div>
+    <canvas id="outputCanvas" style="display:none"></canvas>
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="dot" id="dotLoad"></div>
+        <span id="statusLoad">Waiting for image</span>
+      </div>
+      <div class="status-item">
+        <div class="dot" id="dotProc"></div>
+        <span id="statusProc">Processor idle</span>
+      </div>
+      <div class="status-item">
+        <div class="dot" id="dotReady"></div>
+        <span id="statusReady">Not ready</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Log + stats -->
+  <div class="right-panel">
+    <div class="panel-header">Processing log</div>
+    <div class="log-area" id="logArea"></div>
+    <div class="stats-block">
+      <div class="stat-card">
+        <span class="val" id="statKP">—</span>
+        <div class="lbl">Keypoints</div>
+      </div>
+      <div class="stat-card">
+        <span class="val" id="statTime">—</span>
+        <div class="lbl">Proc. (ms)</div>
+      </div>
+      <div class="stat-card">
+        <span class="val" id="statW">—</span>
+        <div class="lbl">Width px</div>
+      </div>
+      <div class="stat-card">
+        <span class="val" id="statH">—</span>
+        <div class="lbl">Height px</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let originalImageData = null;
+let lastKeypoints = [];
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const fileInput      = document.getElementById('fileInput');
+const uploadZone     = document.getElementById('uploadZone');
+const canvas         = document.getElementById('outputCanvas');
+const ctx            = canvas.getContext('2d');
+const placeholder    = document.getElementById('canvas-placeholder');
+const btnGenerate    = document.getElementById('btnGenerate');
+
+// 3-panel canvases
+const cOriginal      = document.getElementById('canvasOriginal');
+const ctxOrig        = cOriginal.getContext('2d');
+const cGray          = document.getElementById('canvasGray');
+const ctxGray        = cGray.getContext('2d');
+const cFeatures      = document.getElementById('canvasFeatures');
+const ctxFeat        = cFeatures.getContext('2d');
+const btnReset       = document.getElementById('btnReset');
+const btnSave        = document.getElementById('btnSave');
+const logArea        = document.getElementById('logArea');
+const scanLine       = document.getElementById('scanLine');
+
+const maxKPSlider    = document.getElementById('maxKP');
+const maxKPVal       = document.getElementById('maxKPVal');
+const fastThreshSlider = document.getElementById('fastThresh');
+const fastThreshVal  = document.getElementById('fastThreshVal');
+const blurRSlider    = document.getElementById('blurR');
+const blurRVal       = document.getElementById('blurRVal');
+const methodSelect   = document.getElementById('method');
+
+// ─── Logging ──────────────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const now = new Date();
+  const ts  = now.toTimeString().slice(0,8);
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.innerHTML = `<span class="ts">${ts}</span><span class="msg">${msg}</span>`;
+  logArea.appendChild(line);
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+// ─── Status bar helpers ────────────────────────────────────────────────────────
+function setStatus(id, dotId, text, state) {
+  document.getElementById(id).textContent = text;
+  const dot = document.getElementById(dotId);
+  dot.className = 'dot' + (state ? ' ' + state : '');
+}
+
+// ─── Slider live display ───────────────────────────────────────────────────────
+maxKPSlider.oninput    = () => maxKPVal.textContent    = maxKPSlider.value;
+fastThreshSlider.oninput = () => fastThreshVal.textContent = fastThreshSlider.value;
+blurRSlider.oninput    = () => blurRVal.textContent    = blurRSlider.value;
+
+// ─── Drag & drop ──────────────────────────────────────────────────────────────
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadFile(file);
+});
+
+// ─── File input ───────────────────────────────────────────────────────────────
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+});
+
+function loadFile(file) {
+  log(`Loading: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Cap canvas size for performance
+      const MAX = 800;
+      let W = img.width, H = img.height;
+      if (W > MAX) { H = Math.round(H * MAX / W); W = MAX; }
+      if (H > MAX) { W = Math.round(W * MAX / H); H = MAX; }
+
+      canvas.width  = W;
+      canvas.height = H;
+      ctx.drawImage(img, 0, 0, W, H);
+
+      originalImageData = ctx.getImageData(0, 0, W, H);
+      placeholder.style.display = 'none';
+      canvas.style.display = 'block';
+
+      // Draw to Panel 1 — Original RGB
+      cOriginal.width = W; cOriginal.height = H;
+      ctxOrig.drawImage(img, 0, 0, W, H);
+      document.getElementById('emptyOriginal').style.display = 'none';
+      // Clear panels 2 and 3
+      cGray.width = 1; cGray.height = 1;
+      cFeatures.width = 1; cFeatures.height = 1;
+      document.getElementById('emptyGray').style.display = 'block';
+      document.getElementById('emptyFeatures').style.display = 'block';
+
+      btnGenerate.disabled = false;
+      btnReset.disabled    = false;
+      btnSave.disabled     = true;
+
+      setStatus('statusLoad', 'dotLoad', `Image loaded (${W}×${H})`, 'active');
+      setStatus('statusProc', 'dotProc', 'Ready to extract', '');
+      setStatus('statusReady', 'dotReady', 'Not ready', '');
+
+      document.getElementById('statW').textContent = W;
+      document.getElementById('statH').textContent = H;
+      document.getElementById('statKP').textContent = '—';
+      document.getElementById('statTime').textContent = '—';
+
+      log(`Image loaded — ${W}×${H} px`, 'ok');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+btnReset.addEventListener('click', () => {
+  if (!originalImageData) return;
+  ctx.putImageData(originalImageData, 0, 0);
+  btnSave.disabled = true;
+  lastKeypoints = [];
+  setStatus('statusProc', 'dotProc', 'Reset — ready to extract', '');
+  setStatus('statusReady', 'dotReady', 'Not ready', '');
+  document.getElementById('statKP').textContent = '—';
+  document.getElementById('statTime').textContent = '—';
+  log('Canvas reset to original image', 'warn');
+});
+
+// ─── GENERATE ─────────────────────────────────────────────────────────────────
+btnGenerate.addEventListener('click', () => {
+  if (!originalImageData) return;
+  extractFeatures();
+});
+
+function extractFeatures() {
+  const W = canvas.width;
+  const H = canvas.height;
+  const maxKP    = parseInt(maxKPSlider.value);
+  const threshold= parseInt(fastThreshSlider.value);
+  const blurR    = parseInt(blurRSlider.value);
+  const method   = methodSelect.value;
+
+  log(`Starting ${method.toUpperCase()} extraction (maxKP=${maxKP}, thresh=${threshold})`, 'info');
+  setStatus('statusProc', 'dotProc', 'Processing…', 'active');
+  scanLine.classList.add('active');
+  btnGenerate.disabled = true;
+
+  // Restore original before processing
+  ctx.putImageData(originalImageData, 0, 0);
+
+  setTimeout(() => {
+    const t0 = performance.now();
+
+    // ── Step 1: Build jsfeat grayscale matrix ──────────────────────────────
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const gray    = new jsfeat.matrix_t(W, H, jsfeat.U8_t | jsfeat.C1_t);
+
+    jsfeat.imgproc.grayscale(imgData.data, W, H, gray);
+    log('Grayscale conversion complete');
+
+    // Draw grayscale to Panel 2
+    cGray.width = W; cGray.height = H;
+    const grayDrawData = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      const v = gray.data[i];
+      grayDrawData[i*4] = v; grayDrawData[i*4+1] = v;
+      grayDrawData[i*4+2] = v; grayDrawData[i*4+3] = 255;
+    }
+    ctxGray.putImageData(new ImageData(grayDrawData, W, H), 0, 0);
+    document.getElementById('emptyGray').style.display = 'none';
+
+    // ── Step 2: Gaussian blur (noise reduction) ────────────────────────────
+    if (blurR > 0) {
+      const blurred = new jsfeat.matrix_t(W, H, jsfeat.U8_t | jsfeat.C1_t);
+      jsfeat.imgproc.gaussian_blur(gray, blurred, blurR * 2 + 1, 0);
+      gray.data.set(blurred.data);
+      log(`Gaussian blur applied (radius=${blurR})`);
+    }
+
+    // ── Step 3: Feature detection ──────────────────────────────────────────
+    let keypoints;
+
+    if (method === 'fast' || method === 'orb') {
+      // Allocate max possible keypoints
+      const corners = [];
+      for (let i = 0; i < maxKP; i++) corners.push(new jsfeat.keypoint_t(0, 0, 0, 0, -1));
+
+      const count = jsfeat.fast_corners.detect(gray, corners, threshold);
+      // Sort by score (highest first) and trim to maxKP
+      corners.length = count;
+      corners.sort((a, b) => b.score - a.score);
+      if (corners.length > maxKP) corners.length = maxKP;
+
+      keypoints = corners;
+      log(`FAST detected ${count} raw corners → kept ${keypoints.length} (by score)`, 'ok');
+
+      if (method === 'orb') {
+        // Compute ORB orientation (uses intensity centroid)
+        const half_k = 15;
+        jsfeat.orb.describe(gray, keypoints, keypoints.length, half_k);
+        log('ORB orientation computed');
+      }
+
+    } else if (method === 'yape') {
+      // YAPE06 — alternative corner detector
+      const corners = [];
+      for (let i = 0; i < maxKP * 2; i++) corners.push(new jsfeat.keypoint_t(0, 0, 0, 0, -1));
+      jsfeat.yape06.init(W, H, 3, 2);
+      const count = jsfeat.yape06.detect(gray, corners, 5);
+      corners.length = Math.min(count, maxKP);
+      keypoints = corners;
+      log(`YAPE06 detected ${count} corners → kept ${keypoints.length}`, 'ok');
+    }
+
+    const t1 = performance.now();
+    const ms = (t1 - t0).toFixed(1);
+    lastKeypoints = keypoints;
+
+    // ── Step 4: Draw results ───────────────────────────────────────────────
+    drawResults(keypoints, gray, W, H, imgData);
+
+    // Draw feature result to Panel 3
+    cFeatures.width = W; cFeatures.height = H;
+    ctxFeat.drawImage(canvas, 0, 0);
+    document.getElementById('emptyFeatures').style.display = 'none';
+
+    setStatus('statusProc', 'dotProc', `Done — ${ms} ms`, '');
+    setStatus('statusReady', 'dotReady', `${keypoints.length} keypoints`, 'success');
+    document.getElementById('statKP').textContent  = keypoints.length;
+    document.getElementById('statTime').textContent = ms;
+    log(`Extraction complete in ${ms} ms`, 'ok');
+
+    scanLine.classList.remove('active');
+    btnGenerate.disabled = false;
+    btnSave.disabled     = false;
+
+  }, 80); // small delay so the scan animation starts
+}
+
+// ─── Draw Results ─────────────────────────────────────────────────────────────
+function drawResults(keypoints, gray, W, H, imgData) {
+  // First: draw a dark overlay of the original image
+  ctx.putImageData(imgData, 0, 0);
+
+  // Dim the background slightly
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw grayscale as a semi-transparent ghost layer
+  const grayRGBA = new Uint8ClampedArray(W * H * 4);
+  for (let i = 0; i < W * H; i++) {
+    const v = gray.data[i];
+    grayRGBA[i*4]   = v;
+    grayRGBA[i*4+1] = v;
+    grayRGBA[i*4+2] = v;
+    grayRGBA[i*4+3] = 80; // semi-transparent
+  }
+  const grayID = new ImageData(grayRGBA, W, H);
+  ctx.putImageData(grayID, 0, 0);
+
+  // Restore original on top (for context) with opacity
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = W; tmpCanvas.height = H;
+  const tmpCtx = tmpCanvas.getContext('2d');
+  tmpCtx.putImageData(imgData, 0, 0);
+  ctx.globalAlpha = 0.55;
+  ctx.drawImage(tmpCanvas, 0, 0);
+  ctx.globalAlpha = 1.0;
+
+  // Draw keypoints
+  const colors = ['#00e5ff','#00ff88','#ff6b35'];
+
+  keypoints.forEach((kp, i) => {
+    if (kp.x === 0 && kp.y === 0 && kp.score === 0) return;
+
+    // Color by relative score rank (top 33% = cyan, mid = green, rest = orange)
+    const rank = i / keypoints.length;
+    const color = rank < 0.33 ? colors[0] : rank < 0.66 ? colors[1] : colors[2];
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(kp.x, kp.y, 5, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.7;
+    ctx.stroke();
+
+    // Inner dot
+    ctx.beginPath();
+    ctx.arc(kp.x, kp.y, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 1;
+    ctx.fill();
+
+    // Cross hair lines for top keypoints
+    if (rank < 0.1) {
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(kp.x - 8, kp.y);
+      ctx.lineTo(kp.x + 8, kp.y);
+      ctx.moveTo(kp.x, kp.y - 8);
+      ctx.lineTo(kp.x, kp.y + 8);
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+  });
+
+  // Draw legend
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(8, H - 60, 180, 52);
+  ctx.strokeStyle = 'rgba(0,229,255,0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(8, H - 60, 180, 52);
+
+  const legend = [
+    { color: '#00e5ff', label: 'Top 33% (strongest)' },
+    { color: '#00ff88', label: 'Mid 33%' },
+    { color: '#ff6b35', label: 'Bottom 33%' },
+  ];
+  ctx.font = '11px "Share Tech Mono", monospace';
+  legend.forEach((item, i) => {
+    const y = H - 48 + i * 15;
+    ctx.fillStyle = item.color;
+    ctx.beginPath();
+    ctx.arc(20, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#c8d8e8';
+    ctx.fillText(item.label, 32, y + 4);
+  });
+
+  log('Feature overlay rendered — 3-tier score colouring applied');
+}
+
+// ─── Save ─────────────────────────────────────────────────────────────────────
+btnSave.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'ar-marker-features.png';
+  link.href = cFeatures.toDataURL('image/png');
+  link.click();
+  log('Marker image saved as ar-marker-features.png', 'ok');
+});
+
+log('AR Feature Tracker initialised', 'info');
+log('JSFeat library loaded — ready', 'ok');
+log('Upload an image to begin extraction');
+</script>
+</body>
+</html>
