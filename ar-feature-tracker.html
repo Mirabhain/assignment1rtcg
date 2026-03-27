@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Feature Tracker</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsfeat/0.0.8/jsfeat.min.js"></script>
+<title>AR Feature Tracker — Custom Implementation</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 
@@ -33,7 +32,6 @@
     overflow-x: hidden;
   }
 
-  /* Grid background */
   body::before {
     content: '';
     position: fixed;
@@ -96,6 +94,7 @@
     color: var(--muted);
     letter-spacing: 1px;
   }
+  .tag b { color: var(--success); }
 
   .layout {
     position: relative;
@@ -106,7 +105,6 @@
     height: calc(100vh - 61px);
   }
 
-  /* Left panel */
   .left-panel {
     border-right: 1px solid var(--border);
     background: var(--surface);
@@ -164,15 +162,8 @@
     opacity: 0;
     cursor: pointer;
   }
-  .upload-zone .icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-  }
-  .upload-zone p {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.5;
-  }
+  .upload-zone .icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 12px; color: var(--muted); line-height: 1.5; }
   .upload-zone strong {
     display: block;
     color: var(--text);
@@ -271,10 +262,7 @@
     color: var(--accent);
     box-shadow: 0 0 16px rgba(0,229,255,0.25);
   }
-  .btn-primary:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .btn-secondary {
     background: transparent;
@@ -285,10 +273,7 @@
     border-color: var(--accent2);
     color: var(--accent2);
   }
-  .btn-secondary:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
+  .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .btn-save {
     background: transparent;
@@ -300,12 +285,8 @@
     color: var(--success);
     box-shadow: 0 0 12px rgba(0,255,136,0.15);
   }
-  .btn-save:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
+  .btn-save:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  /* Main canvas area */
   .main-area {
     display: flex;
     flex-direction: column;
@@ -357,9 +338,8 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
-    min-height: 0;
-    position: relative;
     min-height: 180px;
+    position: relative;
   }
 
   canvas {
@@ -376,9 +356,6 @@
     text-align: center;
     opacity: 0.5;
   }
-
-  #canvas-placeholder { display: none; }
-  #outputCanvas { display: none; }
 
   .status-bar {
     width: 100%;
@@ -402,7 +379,6 @@
   .status-item .dot.active { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
   .status-item .dot.success { background: var(--success); box-shadow: 0 0 4px var(--success); }
 
-  /* Right panel - log */
   .right-panel {
     border-left: 1px solid var(--border);
     background: var(--surface);
@@ -450,7 +426,6 @@
   .stat-card .val {
     font-family: var(--mono);
     font-size: 22px;
-    font-weight: 400;
     color: var(--accent);
     display: block;
   }
@@ -462,7 +437,6 @@
     margin-top: 2px;
   }
 
-  /* Scanning animation */
   @keyframes scan {
     0% { top: 0; opacity: 1; }
     90% { opacity: 0.8; }
@@ -475,6 +449,7 @@
     background: linear-gradient(90deg, transparent, var(--accent), transparent);
     pointer-events: none;
     display: none;
+    z-index: 2;
   }
   .scan-line.active { display: block; animation: scan 1.2s linear infinite; }
 </style>
@@ -484,7 +459,7 @@
 <header>
   <div class="logo-icon"></div>
   <h1>AR <span>Feature</span> Tracker</h1>
-  <div class="tag">// PHASE 01 — KEYPOINT EXTRACTOR v1.0</div>
+  <div class="tag">// PHASE 01 — KEYPOINT EXTRACTOR v2.0 — <b>CUSTOM IMPLEMENTATION</b></div>
 </header>
 
 <div class="layout">
@@ -506,39 +481,38 @@
       <div class="settings-block">
         <label>Detection method</label>
         <select id="method">
-          <option value="fast">FAST corners (recommended)</option>
-          <option value="orb">ORB descriptors</option>
-          <option value="yape">YAPE06</option>
+          <option value="fast">FAST corners (custom)</option>
+          <option value="harris">Harris corner detector (custom)</option>
         </select>
       </div>
 
       <div class="settings-block">
         <label>Max keypoints</label>
-        <input type="range" id="maxKP" min="50" max="1000" step="50" value="300">
+        <input type="range" id="maxKP" min="50" max="800" step="50" value="300">
         <div class="value-display">
           <span style="color:var(--muted);font-size:10px">50</span>
           <span id="maxKPVal">300</span>
-          <span style="color:var(--muted);font-size:10px">1000</span>
+          <span style="color:var(--muted);font-size:10px">800</span>
         </div>
       </div>
 
       <div class="settings-block">
-        <label>FAST threshold</label>
-        <input type="range" id="fastThresh" min="5" max="80" step="1" value="20">
+        <label>FAST threshold (brightness diff)</label>
+        <input type="range" id="fastThresh" min="5" max="80" step="1" value="25">
         <div class="value-display">
           <span style="color:var(--muted);font-size:10px">5</span>
-          <span id="fastThreshVal">20</span>
+          <span id="fastThreshVal">25</span>
           <span style="color:var(--muted);font-size:10px">80</span>
         </div>
       </div>
 
       <div class="settings-block">
-        <label>Gaussian blur radius</label>
-        <input type="range" id="blurR" min="0" max="4" step="1" value="2">
+        <label>Gaussian blur passes</label>
+        <input type="range" id="blurR" min="0" max="3" step="1" value="1">
         <div class="value-display">
           <span style="color:var(--muted);font-size:10px">off</span>
-          <span id="blurRVal">2</span>
-          <span style="color:var(--muted);font-size:10px">4</span>
+          <span id="blurRVal">1</span>
+          <span style="color:var(--muted);font-size:10px">3</span>
         </div>
       </div>
 
@@ -621,42 +595,41 @@
 </div>
 
 <script>
-// ─── State ────────────────────────────────────────────────────────────────────
+// =============================================================================
+//  FULLY CUSTOM FEATURE EXTRACTION — NO EXTERNAL ALGORITHM LIBRARIES
+//  All image processing written from scratch using raw pixel math.
+// =============================================================================
+
+// ─── State ───────────────────────────────────────────────────────────────────
 let originalImageData = null;
 let lastKeypoints = [];
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
-const fileInput      = document.getElementById('fileInput');
-const uploadZone     = document.getElementById('uploadZone');
-const canvas         = document.getElementById('outputCanvas');
-const ctx            = canvas.getContext('2d');
-const placeholder    = document.getElementById('canvas-placeholder');
-const btnGenerate    = document.getElementById('btnGenerate');
-
-// 3-panel canvases
-const cOriginal      = document.getElementById('canvasOriginal');
-const ctxOrig        = cOriginal.getContext('2d');
-const cGray          = document.getElementById('canvasGray');
-const ctxGray        = cGray.getContext('2d');
-const cFeatures      = document.getElementById('canvasFeatures');
-const ctxFeat        = cFeatures.getContext('2d');
-const btnReset       = document.getElementById('btnReset');
-const btnSave        = document.getElementById('btnSave');
-const logArea        = document.getElementById('logArea');
-const scanLine       = document.getElementById('scanLine');
-
-const maxKPSlider    = document.getElementById('maxKP');
-const maxKPVal       = document.getElementById('maxKPVal');
+const fileInput     = document.getElementById('fileInput');
+const uploadZone    = document.getElementById('uploadZone');
+const outputCanvas  = document.getElementById('outputCanvas');
+const btnGenerate   = document.getElementById('btnGenerate');
+const cOriginal     = document.getElementById('canvasOriginal');
+const ctxOrig       = cOriginal.getContext('2d');
+const cGray         = document.getElementById('canvasGray');
+const ctxGray       = cGray.getContext('2d');
+const cFeatures     = document.getElementById('canvasFeatures');
+const ctxFeat       = cFeatures.getContext('2d');
+const btnReset      = document.getElementById('btnReset');
+const btnSave       = document.getElementById('btnSave');
+const logArea       = document.getElementById('logArea');
+const scanLine      = document.getElementById('scanLine');
+const maxKPSlider   = document.getElementById('maxKP');
+const maxKPVal      = document.getElementById('maxKPVal');
 const fastThreshSlider = document.getElementById('fastThresh');
-const fastThreshVal  = document.getElementById('fastThreshVal');
-const blurRSlider    = document.getElementById('blurR');
-const blurRVal       = document.getElementById('blurRVal');
-const methodSelect   = document.getElementById('method');
+const fastThreshVal = document.getElementById('fastThreshVal');
+const blurRSlider   = document.getElementById('blurR');
+const blurRVal      = document.getElementById('blurRVal');
+const methodSelect  = document.getElementById('method');
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 function log(msg, type = '') {
-  const now = new Date();
-  const ts  = now.toTimeString().slice(0,8);
+  const ts = new Date().toTimeString().slice(0, 8);
   const line = document.createElement('div');
   line.className = 'log-line ' + type;
   line.innerHTML = `<span class="ts">${ts}</span><span class="msg">${msg}</span>`;
@@ -664,14 +637,13 @@ function log(msg, type = '') {
   logArea.scrollTop = logArea.scrollHeight;
 }
 
-// ─── Status bar helpers ────────────────────────────────────────────────────────
 function setStatus(id, dotId, text, state) {
   document.getElementById(id).textContent = text;
   const dot = document.getElementById(dotId);
   dot.className = 'dot' + (state ? ' ' + state : '');
 }
 
-// ─── Slider live display ───────────────────────────────────────────────────────
+// ─── Sliders ──────────────────────────────────────────────────────────────────
 maxKPSlider.oninput    = () => maxKPVal.textContent    = maxKPSlider.value;
 fastThreshSlider.oninput = () => fastThreshVal.textContent = fastThreshSlider.value;
 blurRSlider.oninput    = () => blurRVal.textContent    = blurRSlider.value;
@@ -685,39 +657,27 @@ uploadZone.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file && file.type.startsWith('image/')) loadFile(file);
 });
-
-// ─── File input ───────────────────────────────────────────────────────────────
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) loadFile(fileInput.files[0]);
-});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
 
 function loadFile(file) {
-  log(`Loading: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
+  log(`Loading: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      // Cap canvas size for performance
       const MAX = 800;
       let W = img.width, H = img.height;
       if (W > MAX) { H = Math.round(H * MAX / W); W = MAX; }
       if (H > MAX) { W = Math.round(W * MAX / H); H = MAX; }
 
-      canvas.width  = W;
-      canvas.height = H;
+      outputCanvas.width = W; outputCanvas.height = H;
+      const ctx = outputCanvas.getContext('2d');
       ctx.drawImage(img, 0, 0, W, H);
-
       originalImageData = ctx.getImageData(0, 0, W, H);
-      placeholder.style.display = 'none';
-      canvas.style.display = 'block';
 
-      // Draw to Panel 1 — Original RGB
       cOriginal.width = W; cOriginal.height = H;
       ctxOrig.drawImage(img, 0, 0, W, H);
       document.getElementById('emptyOriginal').style.display = 'none';
-      // Clear panels 2 and 3
-      cGray.width = 1; cGray.height = 1;
-      cFeatures.width = 1; cFeatures.height = 1;
       document.getElementById('emptyGray').style.display = 'block';
       document.getElementById('emptyFeatures').style.display = 'block';
 
@@ -728,238 +688,474 @@ function loadFile(file) {
       setStatus('statusLoad', 'dotLoad', `Image loaded (${W}×${H})`, 'active');
       setStatus('statusProc', 'dotProc', 'Ready to extract', '');
       setStatus('statusReady', 'dotReady', 'Not ready', '');
-
       document.getElementById('statW').textContent = W;
       document.getElementById('statH').textContent = H;
       document.getElementById('statKP').textContent = '—';
       document.getElementById('statTime').textContent = '—';
-
-      log(`Image loaded — ${W}×${H} px`, 'ok');
+      log(`Image ready — ${W}×${H} px`, 'ok');
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-// ─── RESET ────────────────────────────────────────────────────────────────────
+// ─── Reset ────────────────────────────────────────────────────────────────────
 btnReset.addEventListener('click', () => {
   if (!originalImageData) return;
-  ctx.putImageData(originalImageData, 0, 0);
   btnSave.disabled = true;
   lastKeypoints = [];
-  setStatus('statusProc', 'dotProc', 'Reset — ready to extract', '');
+  document.getElementById('emptyGray').style.display = 'block';
+  document.getElementById('emptyFeatures').style.display = 'block';
+  setStatus('statusProc', 'dotProc', 'Reset — ready', '');
   setStatus('statusReady', 'dotReady', 'Not ready', '');
   document.getElementById('statKP').textContent = '—';
   document.getElementById('statTime').textContent = '—';
-  log('Canvas reset to original image', 'warn');
+  log('Reset to original image', 'warn');
 });
 
-// ─── GENERATE ─────────────────────────────────────────────────────────────────
-btnGenerate.addEventListener('click', () => {
-  if (!originalImageData) return;
-  extractFeatures();
-});
+btnGenerate.addEventListener('click', () => { if (originalImageData) extractFeatures(); });
 
+// =============================================================================
+//  STEP 1 — RGB TO GRAYSCALE  (custom, no library)
+//  Uses the standard ITU-R BT.601 luminance formula:
+//    Y = 0.299·R + 0.587·G + 0.114·B
+//  Returns a flat Uint8Array of length W*H (one byte per pixel).
+// =============================================================================
+function rgbToGrayscale(imageData, W, H) {
+  const src  = imageData.data;   // RGBA interleaved, 4 bytes per pixel
+  const gray = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const r = src[i * 4];
+    const g = src[i * 4 + 1];
+    const b = src[i * 4 + 2];
+    // BT.601 luminance weights
+    gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
+  }
+  return gray;
+}
+
+// =============================================================================
+//  STEP 2 — GAUSSIAN BLUR  (custom 5×5 kernel, no library)
+//  Applies a separable Gaussian kernel derived from Pascal's triangle row 5:
+//    1D kernel weights: [1, 4, 6, 4, 1] / 16
+//  We apply horizontal pass then vertical pass (separable convolution).
+//  Returns a new Uint8Array of the same size.
+// =============================================================================
+function gaussianBlur(gray, W, H) {
+  // 1D kernel: [1,4,6,4,1] / 16
+  const K = [1, 4, 6, 4, 1];
+  const KN = 16; // normalisation divisor
+  const half = 2;
+
+  const tmp = new Uint8Array(W * H);
+  const out = new Uint8Array(W * H);
+
+  // Horizontal pass
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let sum = 0;
+      for (let k = 0; k < 5; k++) {
+        const sx = Math.min(Math.max(x + k - half, 0), W - 1);
+        sum += K[k] * gray[y * W + sx];
+      }
+      tmp[y * W + x] = (sum / KN) | 0;
+    }
+  }
+
+  // Vertical pass
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let sum = 0;
+      for (let k = 0; k < 5; k++) {
+        const sy = Math.min(Math.max(y + k - half, 0), H - 1);
+        sum += K[k] * tmp[sy * W + x];
+      }
+      out[y * W + x] = (sum / KN) | 0;
+    }
+  }
+
+  return out;
+}
+
+// =============================================================================
+//  STEP 3a — FAST CORNER DETECTOR  (custom, no library)
+//  Features from Accelerated Segment Test (Rosten & Drummond, 2006).
+//
+//  Algorithm:
+//  For each pixel p, examine 16 pixels on a Bresenham circle of radius 3.
+//  A pixel is a corner if there exist N=9 contiguous pixels on the circle
+//  that are ALL brighter than p+threshold OR ALL darker than p-threshold.
+//
+//  Score = max(|sum_bright - p*N|, |sum_dark - p*N|) used for ranking.
+// =============================================================================
+function detectFAST(gray, W, H, threshold, maxKP) {
+  // Precomputed offsets for the 16 pixels on radius-3 Bresenham circle
+  // (dx, dy) pairs going clockwise starting from top
+  const circle = [
+    [ 0, -3], [ 1, -3], [ 2, -2], [ 3, -1],
+    [ 3,  0], [ 3,  1], [ 2,  2], [ 1,  3],
+    [ 0,  3], [-1,  3], [-2,  2], [-3,  1],
+    [-3,  0], [-3, -1], [-2, -2], [-1, -3]
+  ];
+  const N = 9;   // consecutive pixels required to declare a corner
+  const BORDER = 4; // skip pixels near the image edge
+
+  const keypoints = [];
+
+  for (let y = BORDER; y < H - BORDER; y++) {
+    for (let x = BORDER; x < W - BORDER; x++) {
+      const p = gray[y * W + x];
+      const lo = p - threshold;
+      const hi = p + threshold;
+
+      // Quick pre-test: check pixels at compass positions (1, 5, 9, 13)
+      // to quickly reject non-corners before the full circle test
+      const p1  = gray[(y + circle[0][1])  * W + (x + circle[0][0])];
+      const p5  = gray[(y + circle[4][1])  * W + (x + circle[4][0])];
+      const p9  = gray[(y + circle[8][1])  * W + (x + circle[8][0])];
+      const p13 = gray[(y + circle[12][1]) * W + (x + circle[12][0])];
+
+      // At least 3 of these 4 must be clearly bright or clearly dark
+      let brightCount = 0, darkCount = 0;
+      for (const v of [p1, p5, p9, p13]) {
+        if (v > hi) brightCount++;
+        else if (v < lo) darkCount++;
+      }
+      if (brightCount < 2 && darkCount < 2) continue;
+
+      // Full circle test — check all 16 pixels
+      // Build arrays of 1 (brighter), -1 (darker), 0 (same)
+      const flags = new Int8Array(16);
+      for (let i = 0; i < 16; i++) {
+        const v = gray[(y + circle[i][1]) * W + (x + circle[i][0])];
+        if      (v > hi) flags[i] =  1;
+        else if (v < lo) flags[i] = -1;
+        else             flags[i] =  0;
+      }
+
+      // Find maximum run of consecutive +1 or -1 (circular buffer)
+      let maxBrightRun = 0, maxDarkRun = 0;
+      let brightRun = 0, darkRun = 0;
+
+      // Double the array to handle wrap-around
+      for (let i = 0; i < 32; i++) {
+        const f = flags[i % 16];
+        if      (f === 1)  { brightRun++; darkRun = 0; }
+        else if (f === -1) { darkRun++; brightRun = 0; }
+        else               { brightRun = 0; darkRun = 0; }
+        if (brightRun > maxBrightRun) maxBrightRun = brightRun;
+        if (darkRun   > maxDarkRun)   maxDarkRun   = darkRun;
+      }
+
+      if (maxBrightRun < N && maxDarkRun < N) continue;
+
+      // Corner score: sum of absolute differences for the winning arc
+      let score = 0;
+      for (let i = 0; i < 16; i++) {
+        const v = gray[(y + circle[i][1]) * W + (x + circle[i][0])];
+        score += Math.abs(v - p);
+      }
+
+      keypoints.push({ x, y, score });
+    }
+  }
+
+  // Non-maximum suppression: for each candidate, suppress if a neighbour
+  // within 3 pixels has a higher score
+  const kpMap = new Float32Array(W * H); // fast lookup
+  for (const kp of keypoints) kpMap[kp.y * W + kp.x] = kp.score + 1;
+
+  const suppressed = [];
+  for (const kp of keypoints) {
+    let isMax = true;
+    outer: for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = kp.x + dx, ny = kp.y + dy;
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        if (kpMap[ny * W + nx] > kp.score + 1) { isMax = false; break outer; }
+      }
+    }
+    if (isMax) suppressed.push(kp);
+  }
+
+  // Sort by score descending, keep top maxKP
+  suppressed.sort((a, b) => b.score - a.score);
+  return suppressed.slice(0, maxKP);
+}
+
+// =============================================================================
+//  STEP 3b — HARRIS CORNER DETECTOR  (custom, no library)
+//  Harris & Stephens (1988) "A combined corner and edge detector".
+//
+//  Algorithm:
+//  1. Compute image gradients Ix, Iy using Sobel operators (custom).
+//  2. Compute structure tensor M = [[Ix², IxIy], [IxIy, Iy²]] per pixel.
+//  3. Smooth the tensor components with a Gaussian window (custom).
+//  4. Harris response R = det(M) − k·trace(M)²  where k=0.05.
+//  5. Threshold R, then non-maximum suppress.
+// =============================================================================
+function detectHarris(gray, W, H, maxKP) {
+  // ── Sobel gradients ────────────────────────────────────────────────────────
+  // Sobel X kernel:  [-1,0,1; -2,0,2; -1,0,1]
+  // Sobel Y kernel:  [-1,-2,-1; 0,0,0; 1,2,1]
+  const Ix = new Float32Array(W * H);
+  const Iy = new Float32Array(W * H);
+
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const idx = y * W + x;
+      // Sobel X
+      Ix[idx] = (
+        -gray[(y-1)*W + (x-1)] + gray[(y-1)*W + (x+1)]
+        - 2*gray[y*W + (x-1)]  + 2*gray[y*W + (x+1)]
+        - gray[(y+1)*W + (x-1)] + gray[(y+1)*W + (x+1)]
+      ) / 8;
+      // Sobel Y
+      Iy[idx] = (
+        -gray[(y-1)*W + (x-1)] - 2*gray[(y-1)*W + x] - gray[(y-1)*W + (x+1)]
+        + gray[(y+1)*W + (x-1)] + 2*gray[(y+1)*W + x] + gray[(y+1)*W + (x+1)]
+      ) / 8;
+    }
+  }
+
+  // ── Structure tensor components ────────────────────────────────────────────
+  const Ixx = new Float32Array(W * H);
+  const Iyy = new Float32Array(W * H);
+  const Ixy = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    Ixx[i] = Ix[i] * Ix[i];
+    Iyy[i] = Iy[i] * Iy[i];
+    Ixy[i] = Ix[i] * Iy[i];
+  }
+
+  // ── Smooth tensor with 5×5 Gaussian (reuse blur logic inline) ─────────────
+  const K = [1, 4, 6, 4, 1];
+  const KN = 16;
+  const half = 2;
+
+  function smoothField(f) {
+    const tmp = new Float32Array(W * H);
+    const out = new Float32Array(W * H);
+    // Horizontal
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        let s = 0;
+        for (let k = 0; k < 5; k++) {
+          const sx = Math.min(Math.max(x + k - half, 0), W - 1);
+          s += K[k] * f[y * W + sx];
+        }
+        tmp[y * W + x] = s / KN;
+      }
+    // Vertical
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        let s = 0;
+        for (let k = 0; k < 5; k++) {
+          const sy = Math.min(Math.max(y + k - half, 0), H - 1);
+          s += K[k] * tmp[sy * W + x];
+        }
+        out[y * W + x] = s / KN;
+      }
+    return out;
+  }
+
+  const sIxx = smoothField(Ixx);
+  const sIyy = smoothField(Iyy);
+  const sIxy = smoothField(Ixy);
+
+  // ── Harris response ────────────────────────────────────────────────────────
+  const k = 0.05; // Harris sensitivity constant
+  const R = new Float32Array(W * H);
+  let maxR = 0;
+
+  for (let i = 0; i < W * H; i++) {
+    const det   = sIxx[i] * sIyy[i] - sIxy[i] * sIxy[i];
+    const trace = sIxx[i] + sIyy[i];
+    R[i] = det - k * trace * trace;
+    if (R[i] > maxR) maxR = R[i];
+  }
+
+  // ── Threshold and non-maximum suppression ─────────────────────────────────
+  const threshold = maxR * 0.01; // keep responses above 1% of max
+  const BORDER = 4;
+  const candidates = [];
+
+  for (let y = BORDER; y < H - BORDER; y++) {
+    for (let x = BORDER; x < W - BORDER; x++) {
+      const r = R[y * W + x];
+      if (r < threshold) continue;
+
+      // Check if local maximum in 5×5 window
+      let isMax = true;
+      outer: for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (R[(y + dy) * W + (x + dx)] > r) { isMax = false; break outer; }
+        }
+      }
+      if (isMax) candidates.push({ x, y, score: r });
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates.slice(0, maxKP);
+}
+
+// =============================================================================
+//  MAIN EXTRACTION PIPELINE
+// =============================================================================
 function extractFeatures() {
-  const W = canvas.width;
-  const H = canvas.height;
-  const maxKP    = parseInt(maxKPSlider.value);
-  const threshold= parseInt(fastThreshSlider.value);
-  const blurR    = parseInt(blurRSlider.value);
-  const method   = methodSelect.value;
+  if (!originalImageData) return;
 
-  log(`Starting ${method.toUpperCase()} extraction (maxKP=${maxKP}, thresh=${threshold})`, 'info');
+  const W         = originalImageData.width;
+  const H         = originalImageData.height;
+  const maxKP     = parseInt(maxKPSlider.value);
+  const threshold = parseInt(fastThreshSlider.value);
+  const blurPasses = parseInt(blurRSlider.value);
+  const method    = methodSelect.value;
+
+  log(`Starting custom ${method.toUpperCase()} extraction…`, 'info');
   setStatus('statusProc', 'dotProc', 'Processing…', 'active');
   scanLine.classList.add('active');
   btnGenerate.disabled = true;
 
-  // Restore original before processing
-  ctx.putImageData(originalImageData, 0, 0);
-
+  // Use setTimeout so the UI can repaint and show the scan animation
   setTimeout(() => {
     const t0 = performance.now();
 
-    // ── Step 1: Build jsfeat grayscale matrix ──────────────────────────────
-    const imgData = ctx.getImageData(0, 0, W, H);
-    const gray    = new jsfeat.matrix_t(W, H, jsfeat.U8_t | jsfeat.C1_t);
+    // ── 1. RGB → Grayscale (custom) ──────────────────────────────────────────
+    log('Step 1: Converting RGB → grayscale (BT.601 luminance formula)');
+    let gray = rgbToGrayscale(originalImageData, W, H);
 
-    jsfeat.imgproc.grayscale(imgData.data, W, H, gray);
-    log('Grayscale conversion complete');
-
-    // Draw grayscale to Panel 2
+    // Display grayscale in Panel 2
     cGray.width = W; cGray.height = H;
-    const grayDrawData = new Uint8ClampedArray(W * H * 4);
+    const grayRGBA = new Uint8ClampedArray(W * H * 4);
     for (let i = 0; i < W * H; i++) {
-      const v = gray.data[i];
-      grayDrawData[i*4] = v; grayDrawData[i*4+1] = v;
-      grayDrawData[i*4+2] = v; grayDrawData[i*4+3] = 255;
+      grayRGBA[i*4] = gray[i]; grayRGBA[i*4+1] = gray[i];
+      grayRGBA[i*4+2] = gray[i]; grayRGBA[i*4+3] = 255;
     }
-    ctxGray.putImageData(new ImageData(grayDrawData, W, H), 0, 0);
+    ctxGray.putImageData(new ImageData(grayRGBA, W, H), 0, 0);
     document.getElementById('emptyGray').style.display = 'none';
+    log('Grayscale conversion complete', 'ok');
 
-    // ── Step 2: Gaussian blur (noise reduction) ────────────────────────────
-    if (blurR > 0) {
-      const blurred = new jsfeat.matrix_t(W, H, jsfeat.U8_t | jsfeat.C1_t);
-      jsfeat.imgproc.gaussian_blur(gray, blurred, blurR * 2 + 1, 0);
-      gray.data.set(blurred.data);
-      log(`Gaussian blur applied (radius=${blurR})`);
+    // ── 2. Gaussian blur (custom) ────────────────────────────────────────────
+    for (let p = 0; p < blurPasses; p++) {
+      gray = gaussianBlur(gray, W, H);
+      log(`Step 2: Gaussian blur pass ${p + 1}/${blurPasses} — 5×5 separable kernel [1,4,6,4,1]/16`);
     }
+    if (blurPasses === 0) log('Step 2: Blur skipped (passes = 0)');
 
-    // ── Step 3: Feature detection ──────────────────────────────────────────
+    // ── 3. Feature detection (custom) ────────────────────────────────────────
     let keypoints;
-
-    if (method === 'fast' || method === 'orb') {
-      // Allocate max possible keypoints
-      const corners = [];
-      for (let i = 0; i < maxKP; i++) corners.push(new jsfeat.keypoint_t(0, 0, 0, 0, -1));
-
-      const count = jsfeat.fast_corners.detect(gray, corners, threshold);
-      // Sort by score (highest first) and trim to maxKP
-      corners.length = count;
-      corners.sort((a, b) => b.score - a.score);
-      if (corners.length > maxKP) corners.length = maxKP;
-
-      keypoints = corners;
-      log(`FAST detected ${count} raw corners → kept ${keypoints.length} (by score)`, 'ok');
-
-      if (method === 'orb') {
-        // Compute ORB orientation (uses intensity centroid)
-        const half_k = 15;
-        jsfeat.orb.describe(gray, keypoints, keypoints.length, half_k);
-        log('ORB orientation computed');
-      }
-
-    } else if (method === 'yape') {
-      // YAPE06 — alternative corner detector
-      const corners = [];
-      for (let i = 0; i < maxKP * 2; i++) corners.push(new jsfeat.keypoint_t(0, 0, 0, 0, -1));
-      jsfeat.yape06.init(W, H, 3, 2);
-      const count = jsfeat.yape06.detect(gray, corners, 5);
-      corners.length = Math.min(count, maxKP);
-      keypoints = corners;
-      log(`YAPE06 detected ${count} corners → kept ${keypoints.length}`, 'ok');
+    if (method === 'fast') {
+      log(`Step 3: Running custom FAST detector (threshold=${threshold}, N=9 contiguous)…`);
+      keypoints = detectFAST(gray, W, H, threshold, maxKP);
+      log(`FAST found ${keypoints.length} corners after NMS`, 'ok');
+    } else {
+      log('Step 3: Running custom Harris detector (Sobel gradients + structure tensor)…');
+      keypoints = detectHarris(gray, W, H, maxKP);
+      log(`Harris found ${keypoints.length} corners`, 'ok');
     }
 
     const t1 = performance.now();
     const ms = (t1 - t0).toFixed(1);
     lastKeypoints = keypoints;
 
-    // ── Step 4: Draw results ───────────────────────────────────────────────
-    drawResults(keypoints, gray, W, H, imgData);
-
-    // Draw feature result to Panel 3
+    // ── 4. Draw results on Panel 3 ───────────────────────────────────────────
     cFeatures.width = W; cFeatures.height = H;
-    ctxFeat.drawImage(canvas, 0, 0);
+
+    // Draw original image dimmed
+    ctxFeat.putImageData(originalImageData, 0, 0);
+    ctxFeat.fillStyle = 'rgba(0,0,0,0.38)';
+    ctxFeat.fillRect(0, 0, W, H);
+
+    // Overlay grayscale ghost
+    const ghostRGBA = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      ghostRGBA[i*4] = gray[i]; ghostRGBA[i*4+1] = gray[i];
+      ghostRGBA[i*4+2] = gray[i]; ghostRGBA[i*4+3] = 55;
+    }
+    ctxFeat.putImageData(new ImageData(ghostRGBA, W, H), 0, 0);
+
+    // Overlay original at partial opacity
+    const tmpC = document.createElement('canvas');
+    tmpC.width = W; tmpC.height = H;
+    tmpC.getContext('2d').putImageData(originalImageData, 0, 0);
+    ctxFeat.globalAlpha = 0.5;
+    ctxFeat.drawImage(tmpC, 0, 0);
+    ctxFeat.globalAlpha = 1.0;
+
+    // Draw keypoints colour-coded by rank
+    const colors = ['#00e5ff', '#00ff88', '#ff6b35'];
+    keypoints.forEach((kp, i) => {
+      const rank  = i / keypoints.length;
+      const color = rank < 0.33 ? colors[0] : rank < 0.66 ? colors[1] : colors[2];
+
+      // Outer ring
+      ctxFeat.beginPath();
+      ctxFeat.arc(kp.x, kp.y, 5, 0, Math.PI * 2);
+      ctxFeat.strokeStyle = color;
+      ctxFeat.lineWidth = 1.2;
+      ctxFeat.globalAlpha = 0.7;
+      ctxFeat.stroke();
+
+      // Inner dot
+      ctxFeat.beginPath();
+      ctxFeat.arc(kp.x, kp.y, 1.5, 0, Math.PI * 2);
+      ctxFeat.fillStyle = color;
+      ctxFeat.globalAlpha = 1;
+      ctxFeat.fill();
+
+      // Crosshair for top 10%
+      if (rank < 0.1) {
+        ctxFeat.globalAlpha = 0.5;
+        ctxFeat.strokeStyle = color;
+        ctxFeat.lineWidth = 0.8;
+        ctxFeat.beginPath();
+        ctxFeat.moveTo(kp.x - 8, kp.y); ctxFeat.lineTo(kp.x + 8, kp.y);
+        ctxFeat.moveTo(kp.x, kp.y - 8); ctxFeat.lineTo(kp.x, kp.y + 8);
+        ctxFeat.stroke();
+      }
+      ctxFeat.globalAlpha = 1.0;
+    });
+
+    // Legend
+    ctxFeat.fillStyle = 'rgba(0,0,0,0.6)';
+    ctxFeat.fillRect(8, H - 60, 186, 52);
+    ctxFeat.strokeStyle = 'rgba(0,229,255,0.3)';
+    ctxFeat.lineWidth = 0.5;
+    ctxFeat.strokeRect(8, H - 60, 186, 52);
+    const legend = [
+      { color: '#00e5ff', label: 'Top 33% (strongest)' },
+      { color: '#00ff88', label: 'Mid 33%' },
+      { color: '#ff6b35', label: 'Bottom 33%' },
+    ];
+    ctxFeat.font = '11px "Share Tech Mono", monospace';
+    legend.forEach((item, i) => {
+      const ly = H - 48 + i * 15;
+      ctxFeat.fillStyle = item.color;
+      ctxFeat.beginPath();
+      ctxFeat.arc(20, ly, 3, 0, Math.PI * 2);
+      ctxFeat.fill();
+      ctxFeat.fillStyle = '#c8d8e8';
+      ctxFeat.fillText(item.label, 32, ly + 4);
+    });
+
     document.getElementById('emptyFeatures').style.display = 'none';
 
+    // ── Update UI ─────────────────────────────────────────────────────────────
     setStatus('statusProc', 'dotProc', `Done — ${ms} ms`, '');
     setStatus('statusReady', 'dotReady', `${keypoints.length} keypoints`, 'success');
-    document.getElementById('statKP').textContent  = keypoints.length;
+    document.getElementById('statKP').textContent   = keypoints.length;
     document.getElementById('statTime').textContent = ms;
-    log(`Extraction complete in ${ms} ms`, 'ok');
+    log(`Extraction complete in ${ms} ms — ${keypoints.length} keypoints`, 'ok');
 
     scanLine.classList.remove('active');
     btnGenerate.disabled = false;
     btnSave.disabled     = false;
 
-  }, 80); // small delay so the scan animation starts
-}
-
-// ─── Draw Results ─────────────────────────────────────────────────────────────
-function drawResults(keypoints, gray, W, H, imgData) {
-  // First: draw a dark overlay of the original image
-  ctx.putImageData(imgData, 0, 0);
-
-  // Dim the background slightly
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(0, 0, W, H);
-
-  // Draw grayscale as a semi-transparent ghost layer
-  const grayRGBA = new Uint8ClampedArray(W * H * 4);
-  for (let i = 0; i < W * H; i++) {
-    const v = gray.data[i];
-    grayRGBA[i*4]   = v;
-    grayRGBA[i*4+1] = v;
-    grayRGBA[i*4+2] = v;
-    grayRGBA[i*4+3] = 80; // semi-transparent
-  }
-  const grayID = new ImageData(grayRGBA, W, H);
-  ctx.putImageData(grayID, 0, 0);
-
-  // Restore original on top (for context) with opacity
-  const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = W; tmpCanvas.height = H;
-  const tmpCtx = tmpCanvas.getContext('2d');
-  tmpCtx.putImageData(imgData, 0, 0);
-  ctx.globalAlpha = 0.55;
-  ctx.drawImage(tmpCanvas, 0, 0);
-  ctx.globalAlpha = 1.0;
-
-  // Draw keypoints
-  const colors = ['#00e5ff','#00ff88','#ff6b35'];
-
-  keypoints.forEach((kp, i) => {
-    if (kp.x === 0 && kp.y === 0 && kp.score === 0) return;
-
-    // Color by relative score rank (top 33% = cyan, mid = green, rest = orange)
-    const rank = i / keypoints.length;
-    const color = rank < 0.33 ? colors[0] : rank < 0.66 ? colors[1] : colors[2];
-
-    // Outer ring
-    ctx.beginPath();
-    ctx.arc(kp.x, kp.y, 5, 0, Math.PI * 2);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.2;
-    ctx.globalAlpha = 0.7;
-    ctx.stroke();
-
-    // Inner dot
-    ctx.beginPath();
-    ctx.arc(kp.x, kp.y, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 1;
-    ctx.fill();
-
-    // Cross hair lines for top keypoints
-    if (rank < 0.1) {
-      ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(kp.x - 8, kp.y);
-      ctx.lineTo(kp.x + 8, kp.y);
-      ctx.moveTo(kp.x, kp.y - 8);
-      ctx.lineTo(kp.x, kp.y + 8);
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
-  });
-
-  // Draw legend
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(8, H - 60, 180, 52);
-  ctx.strokeStyle = 'rgba(0,229,255,0.3)';
-  ctx.lineWidth = 0.5;
-  ctx.strokeRect(8, H - 60, 180, 52);
-
-  const legend = [
-    { color: '#00e5ff', label: 'Top 33% (strongest)' },
-    { color: '#00ff88', label: 'Mid 33%' },
-    { color: '#ff6b35', label: 'Bottom 33%' },
-  ];
-  ctx.font = '11px "Share Tech Mono", monospace';
-  legend.forEach((item, i) => {
-    const y = H - 48 + i * 15;
-    ctx.fillStyle = item.color;
-    ctx.beginPath();
-    ctx.arc(20, y, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#c8d8e8';
-    ctx.fillText(item.label, 32, y + 4);
-  });
-
-  log('Feature overlay rendered — 3-tier score colouring applied');
+  }, 80);
 }
 
 // ─── Save ─────────────────────────────────────────────────────────────────────
@@ -971,9 +1167,10 @@ btnSave.addEventListener('click', () => {
   log('Marker image saved as ar-marker-features.png', 'ok');
 });
 
-log('AR Feature Tracker initialised', 'info');
-log('JSFeat library loaded — ready', 'ok');
-log('Upload an image to begin extraction');
+// ─── Init log ─────────────────────────────────────────────────────────────────
+log('AR Feature Tracker v2.0 initialised', 'info');
+log('Custom FAST + Harris algorithms loaded — NO external libraries', 'ok');
+log('Upload an image to begin');
 </script>
 </body>
 </html>
