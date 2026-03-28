@@ -1,9 +1,4 @@
-/* ============================================================
-   Feature extraction: FAST + ORB (own JS implementation)
-   No external CV library used
-   ============================================================ */
 
-// ─── Logging ────────────────────────────────────────────────
 const logBody = document.getElementById('logBody');
 function log(msg, type = '') {
   const el = document.createElement('div');
@@ -24,31 +19,30 @@ function setProgress(pct, label) {
   if (pct >= 100) setTimeout(() => progressWrap.classList.remove('visible'), 800);
 }
 
-// ─── Status pill ────────────────────────────────────────────
+// ─── Status from idle to complete
 const pill = document.getElementById('statusPill');
 function setStatus(text, cls = '') {
   pill.textContent = text;
   pill.className = 'status-pill ' + cls;
 }
 
-// ─── Globals ────────────────────────────────────────────────
+// ─── Globals 
 let sourceImg    = null;
 let featureCanvas = null;
 
-// ─── UI Elements ────────────────────────────────────────────
-const fileInput   = document.getElementById('fileInput');
-const uploadBtn   = document.getElementById('uploadBtn');
-const generateBtn = document.getElementById('generateBtn');
-const saveBtn     = document.getElementById('saveBtn');
-const saveGrayBtn = document.getElementById('saveGrayBtn');
+// ─── UI Elements 
+const fileInput   = document.getElementById('fileInput'); // File input
+const uploadBtn   = document.getElementById('uploadBtn'); // Upload button
+const generateBtn = document.getElementById('generateBtn'); // Generate button
+const saveBtn     = document.getElementById('saveBtn'); // Save button
 
+// ─── Event listener for above elements
 uploadBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleUpload);
 generateBtn.addEventListener('click', runPipeline);
-saveBtn.addEventListener('click', saveFeatureImage);       // FIX: saveBtn only saves feature image
-saveGrayBtn.addEventListener('click', saveGrayscaleImage); // FIX: saveGrayBtn saves grayscale
+saveBtn.addEventListener('click', saveFeatureImage);       
 
-// ─── Upload handler ─────────────────────────────────────────
+// ─── Upload handler 
 function handleUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -77,6 +71,7 @@ function handleUpload(e) {
   fileInput.value = '';
 }
 
+// ─── Get OG image
 function drawOriginal(img) {
   const c = document.getElementById('canvas0');
   const ctx = c.getContext('2d');
@@ -87,7 +82,7 @@ function drawOriginal(img) {
   document.getElementById('badge0').textContent = img.width + ' × ' + img.height;
 }
 
-// ─── Main Pipeline ──────────────────────────────────────────
+// Pipeline to get NFT 
 async function runPipeline() {
   if (!sourceImg) return;
   generateBtn.disabled = true;
@@ -149,8 +144,8 @@ async function runPipeline() {
 
 function tick() { return new Promise(r => setTimeout(r, 0)); }
 
-// ─── 1. RGB → Grayscale ─────────────────────────────────────
-// Formula: Y = 0.299R + 0.587G + 0.114B  (ITU-R BT.601)
+// ─── 1. RGB → Grayscale 
+// Formula for grayscale: Y = 0.299R + 0.587G + 0.114B  (ITU-R BT.601)
 function rgbToGrayscale(img) {
   const offscreen = document.createElement('canvas');
   offscreen.width  = img.width;
@@ -185,7 +180,7 @@ function renderGray(gray, w, h) {
   document.getElementById('badge1').textContent = w + ' × ' + h + ' | grayscale';
 }
 
-// ─── 2. Gaussian Blur (5×5 kernel) ──────────────────────────
+// ─── 2. Gaussian Blur (5×5 kernel) 
 function gaussianBlur(gray, w, h) {
   const kernel = [
     2,  4,  5,  4, 2,
@@ -389,7 +384,7 @@ function renderFeatures(img, keypoints, w, h, method) {
   document.getElementById('badge2').textContent = keypoints.length + ' keypoints';
 }
 
-// ─── Save Feature Image ──────────────────────────────────────
+// ─── Save Feature Image 
 function saveFeatureImage() {
   const c = document.getElementById('canvas2');
   if (!c || c.style.display === 'none') return;
@@ -398,15 +393,4 @@ function saveFeatureImage() {
   link.href = c.toDataURL('image/png');
   link.click();
   log('Feature image saved as PNG.', 'ok');
-}
-
-// ─── Save Grayscale Image ────────────────────────────────────
-function saveGrayscaleImage() {
-  const c = document.getElementById('canvas1');
-  if (!c || c.style.display === 'none') return;
-  const link = document.createElement('a');
-  link.download = 'grayscale_' + Date.now() + '.png';
-  link.href = c.toDataURL('image/png');
-  link.click();
-  log('Grayscale image saved as PNG.', 'ok');
 }
