@@ -149,43 +149,78 @@
        in the same folder and set url="marker" below.
        ════════════════════════════════════════════════════ -->
   <a-scene
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true;"
-    embedded
-    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true;"
+  embedded
+  arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+>
+
+  <!-- ── Marker 1: Pikachu NFT ── -->
+  <a-nft
+    type="nft"
+    url="pikachu"
+    smooth="true"
+    smoothCount="10"
+    smoothTolerance="0.01"
+    smoothThreshold="5"
+    emitevents="true"
+    id="nftPikachu"
   >
-    <!--
-      url="marker" → points to marker.fset, marker.fset3, marker.iset
-      Change "marker" to match your actual filename prefix.
-      smooth / smoothCount / smoothTolerance reduce jitter.
-    -->
-    <a-nft
-      type="nft"
-      url="marker"
-      smooth="true"
-      smoothCount="10"
-      smoothTolerance="0.01"
-      smoothThreshold="5"
-      emitevents="true"
-      id="nftMarker"
-    >
-      <a-entity
-        gltf-model="Pikachu.glb"
-        position="0 0 0"
-        scale="50 50 50"
-        rotation="0 0 0"
-      ></a-entity>
+    <a-entity
+      gltf-model="pichu.glb"
+      position="0 1100 0"
+      scale="10 10 10 "
+      rotation="360 360 270"
+    ></a-entity>
+  </a-nft>
 
-      <a-entity
-    gltf-model="Charmander.glb"
-    position="150 0 0"
-    scale="50 50 50"
-    rotation="0 0 0"
-      ></a-entity>
-    </a-nft>
+  <!-- ── Marker 2: Dialga NFT ── -->
+  <a-nft
+    type="nft"
+    url="dialga"
+    smooth="true"
+    smoothCount="10"
+    smoothTolerance="0.01"
+    smoothThreshold="5"
+    emitevents="true"
+    id="nftDialga"
+  >
+    <a-entity
+      gltf-model="Snorlax.glb"
+      position="0 10 0"
+      scale="800 800 800"
+      rotation="0 180 0"
+    ></a-entity>
 
-    <a-entity camera></a-entity>
-  </a-scene>
+    <a-entity
+      gltf-model="Charmander.glb"
+      position="700 0 0"
+      scale="500 500 600"
+      rotation="0 180 0"
+    ></a-entity>
+  </a-nft>
+
+    <!-- ── Marker 3: Giratina NFT ── -->
+  <a-nft
+    type="nft"
+    url="giratina"
+    smooth="true"
+    smoothCount="10"
+    smoothTolerance="0.01"
+    smoothThreshold="5"
+    emitevents="true"
+    id="nftmarker3"
+  >
+    <a-entity
+      gltf-model="giratina.glb"
+      position="0 100 0"
+      scale="30 30 30"
+      rotation="0 180 0"
+    ></a-entity>
+  </a-nft>
+
+  <a-entity camera></a-entity>
+</a-scene>
 
   <script>
     const badge     = document.getElementById('statusBadge');
@@ -194,27 +229,29 @@
     const infoPanel = document.getElementById('infoPanel');
 
     // Hide loading once scene initializes
-    const scene = document.querySelector('a-scene');
-    scene.addEventListener('loaded', () => {
-      setTimeout(() => loading.classList.add('hidden'), 1200);
-    });
+   const scene = document.querySelector('a-scene');
+scene.addEventListener('loaded', () => {
+  setTimeout(() => loading.classList.add('hidden'), 1200);
+});
 
-    // Marker found / lost
-    const marker = document.getElementById('nftMarker');
+// Attach events to both markers
+['nftPikachu', 'nftDialga', 'nftmarker3'].forEach(id => {
+  const marker = document.getElementById(id);
 
-    marker.addEventListener('markerFound', () => {
-      badge.textContent   = ' MARKER FOUND';
-      badge.classList.add('found');
-      scanLine.classList.add('hidden');
-      infoPanel.innerHTML = 'Marker tracked — <span>3D object rendered</span>';
-    });
+  marker.addEventListener('markerFound', () => {
+    badge.textContent = 'MARKER FOUND';
+    badge.classList.add('found');
+    scanLine.classList.add('hidden');
+    infoPanel.innerHTML = 'Marker tracked — <span>3D object rendered</span>';
+  });
 
-    marker.addEventListener('markerLost', () => {
-      badge.textContent   = 'SCANNING';
-      badge.classList.remove('found');
-      scanLine.classList.remove('hidden');
-      infoPanel.innerHTML = 'Point camera at your <span>colored A4 marker</span> — keep it well-lit and flat';
-    });
+  marker.addEventListener('markerLost', () => {
+    badge.textContent = 'SCANNING';
+    badge.classList.remove('found');
+    scanLine.classList.remove('hidden');
+    infoPanel.innerHTML = 'Point camera at your <span>colored A4 marker</span> — keep it well-lit and flat';
+  });
+});
   </script>
 </body>
 </html>
